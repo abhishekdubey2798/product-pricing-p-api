@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<os:object-store name="Object_store_exchange_rates" doc:name="Object store" doc:id="1beb72fe-fe82-4ad1-ae2e-4e3409e9ef4f" />
+	<os:object-store name="Object_store_dates" doc:name="Object store" doc:id="dd722a51-93ab-4aaf-bb5b-779a9f2e0ffd" />
+	<flow name="USD-currency-converter" doc:id="ac821a96-e900-4bb8-98f4-7a1efe59ed0d" >
+		<ee:transform doc:name="Set amount and currency" doc:id="7a6b05f4-12b3-41c5-8352-cfbc36070caf">
+			<ee:variables>
+				<ee:set-variable variableName="currency"><![CDATA[%dw 2.0
+output application/java
+---
+vars.getProduct.CurrencyCode default "USD"]]></ee:set-variable>
+				<ee:set-variable variableName="amount"><![CDATA[%dw 2.0
+output application/java
+---
+vars.getProduct.ProductPrice default 0]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="ensure-exchange-rates-current" doc:id="65fae442-30d6-4c2f-872b-a3c7a5801757" name="ensure-exchange-rates-current" />
+		<ee:transform doc:name="storing conversion flag" doc:id="e8f6b31e-31e9-4819-82a6-d2362dce772a" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="convertUSD" ><![CDATA[%dw 2.0
+output application/json
+import * from dw::core::Arrays
+---
+"results" : payload.CurrencyCode every($ == "USD")]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Currency" doc:id="f64ca746-dd83-49ba-b7d2-adc024f64236">
+			<when expression='#[vars.convertUSD.results == true]'>
+				<ee:transform doc:name="Map response for USD currency" doc:id="947dc6cd-3c79-4a3e-812a-fd8cd8f3ab79">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.getProduct map ((item, index) -> {
+    "ProductId" : item.ProductId,
+    "ProductCode" : item.ProductCode,
+    "Name" : item.Name,
+    "ProductPrice" : item.ProductPrice,
+    "ProductPriceUSD" : item.ProductPrice,
+    "CurrencyCode": item.CurrencyCode,
+    "Description": item.Description
+})]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+					<os:retrieve-all doc:name="Retrieve all exchange rates" doc:id="5efeb2eb-8683-4554-9148-aff6dc572f93" objectStore="Object_store_exchange_rates" target="exchangeRate"/>
+				<ee:transform doc:name="Map Response for other currencies" doc:id="1923fbe3-2d02-4d98-8120-c448910e70a0">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+fun convertToUsd (price: Number,code: String,obj: Object) = (price/obj["$("CURRENCY-"++ code)"]) as String {format: "#.##"} as Number
+---
+vars.getProduct map ((item, index) -> {
+    "ProductId" : item.ProductId,
+    "ProductCode" : item.ProductCode,
+    "Name" : item.Name,
+    "ProductPrice" : item.ProductPrice,
+    "ProductPriceUSD" :  if((item.CurrencyCode != "USD"))convertToUsd(item.ProductPrice,item.CurrencyCode,vars.exchangeRate) else item.ProductPrice,
+    "CurrencyCode": item.CurrencyCode,
+    "Description": item.Description
+})]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="currency"><![CDATA[%dw 2.0
+output application/java
+---
+message.attributes.queryParams.currency]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			
+</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="3a1bfd0a-2a95-4f8e-afba-64918acde561" type="OS:INVALID_KEY, OS:KEY_NOT_FOUND, OS:STORE_NOT_AVAILABLE" >
+				<ee:transform doc:name="Transform Message" doc:id="7aa879eb-d47f-4ec8-863f-c3d572860c08" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{  error: "currency $(vars.currency default "UNKNOWN") could not be found"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="returnCode" ><![CDATA[%dw 2.0
+output application/java
+---
+"500"]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-continue>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="e2411cdd-55fb-4b23-b622-d1b2f88bfd8f" type="VALIDATION:INVALID_NUMBER, VALIDATION:NULL">
+				<ee:transform doc:name="Transform Message" doc:id="5f347f69-5499-40a5-8b84-69086b24d0d5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{  error: error.description
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="returnCode" ><![CDATA[%dw 2.0
+output application/java
+---
+"400"]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="ensure-exchange-rates-current" doc:id="7373b6c2-1788-4efa-b4ef-ea9342e3d96c" >
+		<set-variable value="#[now() as Date]" doc:name="today" doc:id="4ffd6973-138b-4fdc-8331-d12a8b3ef0b5" variableName="today"/>
+		<os:retrieve doc:name="Retrieve exchangeRateDate" doc:id="bef2086e-96d3-4998-bba0-fdffd54a8ac6" key="exchangeRateDate" target="exchangeRateDate" targetValue="#[payload as Date]" objectStore="Object_store_dates">
+			<os:default-value ><![CDATA[#[(now() - |P10D|) as Date]]]></os:default-value>
+		</os:retrieve>
+		<choice doc:name="Choice" doc:id="9445e35c-2898-4c4e-8769-ff5bd51cb04d" >
+			<when expression="#[daysBetween (vars.exchangeRateDate, vars.today) &gt; 1]">
+				<flow-ref doc:name="cache-exchange-rates" doc:id="48cd0a20-2486-4735-9392-dd115dff6853" name="cache-exchange-rates"/>
+			</when>
+		
+</choice>
+	</flow>
+	<flow name="cache-exchange-rates" doc:id="5a360aa8-f607-4c16-adca-b5d5f2b4cbab" >
+		<scheduler doc:name="Scheduler" doc:id="e65d11e3-ff7d-4c15-b706-6684653733cf" >
+			<scheduling-strategy >
+				<cron expression="${cron.job}" timeZone="${cron.timezone}" />
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="before calling exchnage rates api " doc:id="0178d99d-d131-496d-89b0-786dd68a180c" message="before calling exchnage rates api "/>
+		<http:request method="GET" doc:name="GET exchange rates" doc:id="fc0dd3be-f1b6-42b4-afda-2692656b36b6" url="https://currency-exchange-api-v1.us-e2.cloudhub.io/exchange"/>
+		<logger level="INFO" doc:name="after calling exchnage rates api " doc:id="40fc0a84-fe30-4c2e-835d-5ca99f334d57" message="after calling exchnage rates api "/>
+		<ee:transform doc:name="Map payload and exchangeRateDate" doc:id="080973c3-92b1-46bc-b70b-079acc1d03db">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload.rates pluck (value, key) -> {currency: key, rate: value}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="exchangeRateDate"><![CDATA[%dw 2.0
+output application/java
+---
+payload.date as Date]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="0828ee4e-ded1-48a0-857b-314acde8b720" collection="payload">
+			<logger level="INFO" doc:name="Logger" doc:id="a2a58fff-47ce-4681-9ed1-426710af0e55" message='#["1 USD = " ++ payload.rate ++ " " ++ payload.currency]'/>
+			<os:store doc:name="Store exchange rate" doc:id="c87751fa-c142-4b18-b676-ad5e77f20c5e" key='#["CURRENCY-" ++ payload.currency]' objectStore="Object_store_exchange_rates">
+				<os:value ><![CDATA[#[payload.rate]]]></os:value>
+			</os:store>
+		</foreach>
+		<os:store doc:name="Store exchangeRateDate" doc:id="5cbf693b-54bd-463d-b888-b684d8837101" key="exchangeRateDate" objectStore="Object_store_dates">
+			<os:value ><![CDATA[#[vars.exchangeRateDate]]]></os:value>
+		</os:store>
+		<logger level="INFO" doc:name="Logger" doc:id="c28c0252-f893-4b6a-84d1-bab4dd1322de" message='#["exchange rates loaded for " ++ sizeOf(payload) ++ " currencies"]'/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="058725b7-63ee-48fd-bb50-be5742559696" type="ANY">
+				<logger level="ERROR" doc:name="Logger" doc:id="0d6ba49f-dfd6-4e3d-854e-19db7f62c566" message='#["Could not load exchange rates. Error details: \n" ++ error.detailedDescription]'/>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	
+</mule>

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="get-products-Sub-Flow" doc:id="d682086d-3f88-4214-bf0d-566b9d23855f" >
+		<ee:transform doc:name="var:queryParams" doc:id="0a6775c1-c61d-42e7-a52b-ef1cc68e374f" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="page" ><![CDATA[attributes.queryParams.page]]></ee:set-variable>
+				<ee:set-variable variableName="size" ><![CDATA[attributes.queryParams.size]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="get products flow starts" doc:id="e5dc57b1-4937-4c2c-abec-fcee1020c172" message="get products flow starts" />
+		<os:store doc:name="Storing record size" doc:id="6f56c690-2adf-401b-958d-509fe433beb9" key="size" objectStore="Object_store_size" >
+			<os:value ><![CDATA[#[vars.size default 0]]]></os:value>
+		</os:store>
+		<os:retrieve doc:name="Retrieving page number " doc:id="43ab3907-abd0-483f-8bd1-08f98dc72079" key="page" objectStore="Object_store_page" target="page">
+			<os:default-value ><![CDATA[0]]></os:default-value>
+		</os:retrieve>
+		<choice doc:name="Choice" doc:id="46d7a39b-b4a2-4e06-93ef-e8ca77bbd6fe">
+			<when expression="#[(vars.size != null and !isEmpty(vars.size))]">
+				<http:request method="GET" doc:name="get product request" doc:id="027671ad-3bdb-4f01-8028-01f188f0804f" config-ref="HTTP_Request_configuration" path="${salesforce.sys.getProductpath}" sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]" outputMimeType="application/json">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"client-id" : p('secure::salesforce.client-id'),
+	"client-secret" : p('secure::salesforce.client-secret')
+}]]]></http:headers>
+					<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"size": vars.size,
+	"page": vars.page
+}]]]></http:query-params>
+		</http:request>
+				<set-variable value="#[payload]" doc:name="storing payload " doc:id="e2bf39fe-c362-4b6e-83ce-134525a4c310" variableName="getProduct"/>
+				<os:store doc:name="updating page number" doc:id="aa7484f3-a49e-4157-9561-66acc6a9282f" objectStore="Object_store_page" key="page">
+			<os:value><![CDATA[#[vars.page + vars.size]]]></os:value>
+		</os:store>
+			</when>
+			<otherwise>
+				<http:request method="GET" doc:name="get product request" doc:id="d9f251b4-c07c-4ed1-bf7d-7fe6aada8f07" config-ref="HTTP_Request_configuration" path="${salesforce.sys.getProductpath}" sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]" outputMimeType="application/json">
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client-id" : p('secure::salesforce.client-id'),
+	"client-secret" : p('secure::salesforce.client-secret')
+}]]]></http:headers>
+				</http:request>
+				<set-variable value="#[payload]" doc:name="storing payload " doc:id="e620f3a8-73a6-4e15-b805-fd4cdf74555e" variableName="getProduct" />
+			</otherwise>
+		</choice>
+		<choice doc:name="Choice" doc:id="18b08d96-aaaf-4f35-bbbb-6a97f0fe2fe3" >
+			<when expression='#[payload.message =="No records available for Products"]'>
+				<os:remove doc:name="Removing record size" doc:id="837c2a37-b1cf-488d-80a3-c19ea8157802" objectStore="Object_store_size" key="size"/>
+				<os:remove doc:name="Removing page number" doc:id="54862d77-d72b-4fbf-9619-fc7ca9fb2e2d" objectStore="Object_store_page" key="page"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="USD-currency-converter" doc:id="4d315b79-f0af-4aa9-a60d-bf4615f09792" name="USD-currency-converter" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="get products flow ends" doc:id="4fc3af92-6d1b-404d-8259-1267710a9e46" message="get products flow ends"/>
+	
+</sub-flow>
+	<sub-flow name="delete-products-Sub-Flow" doc:id="50e99773-c65f-45c5-a252-c82c34c6faf9" >
+		<logger level="INFO" doc:name="delete flow starts" doc:id="031a32bd-7b2c-4eb7-885a-64bdc2a5a893" message="delete flow starts" />
+		<http:request method="DELETE" doc:name="delete product request" doc:id="4c51f633-ce77-427c-9b74-bf745e8d849e" config-ref="HTTP_Request_configuration" path="${salesforce.sys.deleteProductPath}" sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client-id" : p('secure::salesforce.client-id'),
+	"client-secret" : p('secure::salesforce.client-secret')
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+vars.queryParams]]]></http:query-params>
+		</http:request>
+		<logger level="INFO" doc:name="delete flow ends" doc:id="292bba52-a2bf-4baf-a962-c5386757ca45" message="delete flow ends"/>
+	</sub-flow>
+	<sub-flow name="update-product-Sub-Flow" doc:id="3d595313-21d2-4bec-a18a-ea6204902c3c" >
+		<logger level="INFO" doc:name="update flow starts" doc:id="aada4d3f-9a5b-4a69-a702-07bd58fb4ed9" message="update flow starts"/>
+		<http:request method="PUT" doc:name="update product request" doc:id="7807d858-12c9-4aa3-bec3-6798d7535d9e" config-ref="HTTP_Request_configuration" path="${salesforce.sys.updateProductPath}" sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client-id" : p('secure::salesforce.client-id'),
+	"client-secret" : p('secure::salesforce.client-secret')
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+vars.queryParams]]]></http:query-params>
+		</http:request>
+		<logger level="INFO" doc:name="update flow ends" doc:id="2234aa10-00ca-4721-9634-c0d9fc34f55d" message="update flow ends"/>
+	</sub-flow>
+	<sub-flow name="create-product-Sub-Flow" doc:id="efebd78b-05cc-4992-8d5f-b59458028194" >
+		<logger level="INFO" doc:name="create flow starts" doc:id="2b3e3185-f3ee-4142-92f4-87fdccd0e356" message="create flow starts" />
+		<http:request method="POST" doc:name="create product request" doc:id="d47cbb08-40d5-441c-8710-d1d219321444" config-ref="HTTP_Request_configuration" path="${salesforce.sys.createProductPath}" sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client-id" : p('secure::salesforce.client-id'),
+	"client-secret" : p('secure::salesforce.client-secret')
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Create flow ends" doc:id="af960a7a-f883-4512-aefb-ecb7b722c67e" message="Create flow ends"/>
+	</sub-flow>
+	<sub-flow name="health-check-Sub-Flow" doc:id="9a5de7c9-0e78-48f4-a470-3cd6d3c7aedf" >
+		<logger level="INFO" doc:name="heathCheck flow starts" doc:id="e7db140d-7d5a-4c9a-87c9-60394e09c6c9" message="heathCheck flow starts"/>
+		<http:request method="GET" doc:name="get heath check request" doc:id="7535a07a-5e54-4bd4-b01b-8fed9815df18" config-ref="HTTP_Request_configuration" path="${salesforce.sys.heathCheckPath}" sendCorrelationId="ALWAYS" correlationId="#[vars.correlationId]">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client-id" : p('secure::salesforce.client-id'),
+	"client-secret" : p('secure::salesforce.client-secret')
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="heakthCheck flow ends" doc:id="b63097a7-dd22-456d-8455-71ac906bf028" message="heakthCheck flow ends"/>
+	</sub-flow>
+</mule>

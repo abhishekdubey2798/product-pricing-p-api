@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="product-pricing-api-test-suite.xml" />
+	<munit:test name="product-pricing-api-test-suite-product-pricing-api-mainTest" doc:id="53404a99-2c15-40ab-991d-f282cf50e3e1" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="eb42b589-089a-4346-b9f2-6297edd6f296" processor="apikit:router">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="product-pricing-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to product-pricing-api-main" doc:id="728fef09-f84d-41be-93de-6672a0158786" name="product-pricing-api-main"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="6e20eb85-53ad-4147-bd56-398e2fa2de55" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="product-pricing-api-test-suite-product-pricing-api-consoleTest" doc:id="a08d579b-4ffb-4e72-b753-b2c4a0e87e8c" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="c1cf3092-f0e3-4c3c-82d4-3e7ffaa24b8f" processor="apikit:console">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="product-pricing-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to product-pricing-api-console" doc:id="77fa8428-5e1e-468e-bca0-fd5e27bf487d" name="product-pricing-api-console"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="9ca8bb7e-2681-4aab-9dc6-13816431f2fe" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="product-pricing-api-test-suite-get:\healthcheck" doc:id="a9f6b96f-a589-4285-a872-a2e9516f6289" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="164774b0-6963-4d30-83cd-67af0711e91e" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="get heath check request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[MunitTools::getResourceAsString('response_payload/healthCheckResponse.json')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to get:\healthcheck:product-pricing-api-config" doc:id="40a3a580-e097-409a-9db1-fab9230a768c" name="get:\healthcheck:product-pricing-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="57194891-62bc-41cc-a6f4-679af50457a7" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="product-pricing-api-test-suite-delete:\deleteProducts" doc:id="4e53dd8a-e31e-4d7a-ab79-a81de3d63a42" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="18583f88-1ae0-402f-a5d3-6d1418798451" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="delete product request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[MunitTools::getResourceAsString('response_payload/deleteProducts.json')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="49ecabcc-4348-4ac2-abc0-885aef6c9b64">
+				<munit:payload value="#[MunitTools::getResourceAsString('request_payload/deleteProducts.json')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[{queryParams: {&quot;productId&quot;: 'P00000000013'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to delete:\deleteProducts:product-pricing-api-config" doc:id="c126830f-1542-4918-8b80-d7e4735fb14d" name="delete:\deleteProducts:product-pricing-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="22255737-2d94-4158-b1b9-c64d4d95d22b" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="product-pricing-api-test-suite-get:\getProducts:ALL-RECORDS" doc:id="b21229cc-0659-48b7-8c94-323b06f8465a" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="bea68afb-5cfb-4791-82c8-c5d37c74ce1e" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="get product request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[MunitTools::getResourceAsString('response_payload/getAllProducts.json')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to get:\getProducts:product-pricing-api-config" doc:id="6264dbc1-a318-4239-994e-c31a040a333c" name="get:\getProducts:product-pricing-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="7557c537-84ed-4691-b04f-2540a6aa56ec" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="product-pricing-api-test-suite-put:\updateProducts" doc:id="83759281-a7f4-426f-ab96-41d0bf387e91" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="29d809e1-1a60-407c-a412-222684d9371a" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="update product request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[MunitTools::getResourceAsString('response_payload/updateProducts.json')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="efcb40c3-f4aa-4b14-9f23-bbbded2efd63">
+				<munit:payload value="#[MunitTools::getResourceAsString('request_payload/updateProducts.json')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[{queryParams: {&quot;productId&quot;: 'P00000000013'}}]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to put:\updateProducts:application\json:product-pricing-api-config" doc:id="f5a4f253-310c-4d19-8733-062bb15d9a24" name="put:\updateProducts:application\json:product-pricing-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="e8aae149-7ae7-4ef7-8b0a-c6e376c390a1" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="product-pricing-api-test-suite-post:\createProducts" doc:id="bd20e644-3285-4694-9a66-b5128342b157" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="68d27f92-25fa-4cbb-845a-5765ec02c12c" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="create product request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[MunitTools::getResourceAsString('response_payload/createProducts.json')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="19605dd7-1958-456a-a050-3c86a2597c3b">
+				<munit:payload value="#[MunitTools::getResourceAsString('request_payload/createProducts.json')]" encoding="UTF-8" mediaType="application/json" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to post:\createProducts:application\json:product-pricing-api-config" doc:id="3fb43ba2-63e6-4766-875d-de3706397403" name="post:\createProducts:application\json:product-pricing-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="aeb43c8b-7bac-4600-8ed0-116a0375b990" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="product-pricing-api-test-suite-get:\getProducts:PAGINATION" doc:id="c587a20c-c975-4ff2-92ea-42ff2e81e173" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="db6ba239-fe9e-4516-abaf-1a07c856959d" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="get product request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[MunitTools::getResourceAsString('response_payload/getALLProducts.json')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when" doc:id="0f6e9160-154d-4edc-b3ae-76725ea5bdbd" processor="os:store">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Store" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="queryParams" doc:id="1b55a353-146a-4a94-acf6-10eb891a193b">
+				<munit:attributes value="#[MunitTools::getResourceAsString('request_payload/queryParams.json')]" encoding="UTF-8" mediaType="application/json" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to get:\getProducts:product-pricing-api-config" doc:id="6adfebcd-8914-4cbf-ad5c-f825949f0d22" name="get:\getProducts:product-pricing-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Validating Payload" doc:id="5c35bd26-1abf-4f60-bf7a-cf4641fdb04e" message="The payload does not match" expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

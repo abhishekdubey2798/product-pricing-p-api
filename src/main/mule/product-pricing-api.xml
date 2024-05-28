@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+    <apikit:config name="product-pricing-api-config" api="product-pricing-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="product-pricing-api-main">
+        <http:listener path="/api/*" config-ref="httpListenerConfig">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <ee:transform doc:name="Transform Message" doc:id="9aef26c2-a4ca-4c87-9dc1-f4c9c25ccc1e">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="queryParams"><![CDATA[%dw 2.0
+output application/json
+---
+attributes.queryParams]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <apikit:router config-ref="product-pricing-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="product-pricing-api-console">
+        <http:listener path="/console/*" config-ref="httpListenerConfig">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="product-pricing-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\healthcheck:product-pricing-api-config">
+        <ee:transform doc:name="Transform Message" doc:id="334e42a8-8da2-4165-8bfe-1618a0f3972a">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="interfaceName"><![CDATA["product-pricing-p-api"]]></ee:set-variable>
+                <ee:set-variable variableName="correlationId"><![CDATA[correlationId]]></ee:set-variable>
+                <ee:set-variable variableName="flowname"><![CDATA["Heath check flow"]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="health-check-Sub-Flow" doc:id="f1761e30-b038-43fc-b286-19e318ebc2ab" name="health-check-Sub-Flow" />
+        <error-handler ref="global-error-handler" />
+    </flow>
+    <flow name="delete:\deleteProducts:product-pricing-api-config">
+        <ee:transform doc:name="Transform Message" doc:id="dd2573b7-5ec0-4f10-926b-2a658aa885f7">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="interfaceName"><![CDATA["product-pricing-p-api"]]></ee:set-variable>
+                <ee:set-variable variableName="correlationId"><![CDATA[correlationId]]></ee:set-variable>
+                <ee:set-variable variableName="flowname"><![CDATA["delete/products"]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="delete-products-Sub-Flow" doc:id="c14148fd-867e-4514-9d44-dc2e5090ffc9" name="delete-products-Sub-Flow" />
+        <error-handler ref="global-error-handler" />
+    </flow>
+    <flow name="get:\getProducts:product-pricing-api-config">
+        <ee:transform doc:name="Transform Message" doc:id="31f88f80-541f-4538-b757-6a6892346765">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="interfaceName"><![CDATA["product-pricing-p-api"]]></ee:set-variable>
+                <ee:set-variable variableName="correlationId"><![CDATA[correlationId]]></ee:set-variable>
+                <ee:set-variable variableName="flowname"><![CDATA["get all products"]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="get-products-Sub-Flow" doc:id="642e084f-5ebe-4137-8c3c-61d13136ff9b" name="get-products-Sub-Flow" />
+        <error-handler ref="global-error-handler" />
+    </flow>
+    <flow name="put:\updateProducts:application\json:product-pricing-api-config">
+        <ee:transform doc:name="Transform Message" doc:id="87a4272d-a823-4deb-a51a-3749c371f36a">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="interfaceName"><![CDATA["product-pricing-p-api"]]></ee:set-variable>
+                <ee:set-variable variableName="correlationId"><![CDATA[correlationId]]></ee:set-variable>
+                <ee:set-variable variableName="flowname"><![CDATA["update products flow"]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-product-Sub-Flow" doc:id="c94dd374-aca8-4812-b2d5-5f1c87fff469" name="update-product-Sub-Flow" />
+        <error-handler ref="global-error-handler" />
+    </flow>
+    <flow name="post:\createProducts:application\json:product-pricing-api-config">
+        <ee:transform doc:name="Transform Message" doc:id="b7293924-44c1-41dd-a8ec-ff6829379b4b">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="interfaceName"><![CDATA["product-pricing-p-api"]]></ee:set-variable>
+                <ee:set-variable variableName="correlationId"><![CDATA[correlationId]]></ee:set-variable>
+                <ee:set-variable variableName="flowname"><![CDATA["create products flow"]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="create-product-Sub-Flow" doc:id="e2a34f20-9c3b-403f-9cb5-3ecaa2a75e90" name="create-product-Sub-Flow" />
+        <error-handler ref="global-error-handler" />
+    </flow>
+</mule>

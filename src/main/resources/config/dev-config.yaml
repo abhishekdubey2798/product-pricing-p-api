@@ -1,0 +1,45 @@
+https:
+  host: "0.0.0.0"
+  port: "8082"
+  timeout: "30000"
+  ideal: "40000"
+
+cron.job: "0 30 10 ? * * *"
+cron.timezone: "UTC"
+
+keystore:
+  path: "keystore.jks"
+  password: "![4FLFuhL9EWuQ9rrkn5Cv2CJxhqPbjfCmOlnXpE3tIHg=]"
+  
+truststore:
+  path: "us-e2.cloudhub.io.jks"
+  password: "![4FLFuhL9EWuQ9rrkn5Cv2CJxhqPbjfCmOlnXpE3tIHg=]"
+
+api:
+  id: "19535267"
+
+client-id: "![SeHLPQ4F9z4Y/HzTXBJnKJPUroBE2e6kj3HBiuMDC77aoDirZ/13mG/PxRgCMrZo]"
+client-secret: "![VnQnfOdjz+PHbhgKVl3JRXp5Z3mrKf0eczp73xIRtYil1fy+m7akfUik7SoU0ZMG]"
+  
+salesforce:
+  client-id: "![SeHLPQ4F9z4Y/HzTXBJnKJPUroBE2e6kj3HBiuMDC77aoDirZ/13mG/PxRgCMrZo]"
+  client-secret: "![VnQnfOdjz+PHbhgKVl3JRXp5Z3mrKf0eczp73xIRtYil1fy+m7akfUik7SoU0ZMG]"
+  sys:
+    host: "salesforce-s-api-v1.us-e2.cloudhub.io"
+    #host: "localhost"
+    port: "8082"
+    basepath: "/"
+    getProductpath: "api/getProducts"
+    createProductPath: "api/createProducts"
+    deleteProductPath: "api/deleteProducts"
+    updateProductPath: "api/updateProducts"
+    heathCheckPath: "api/healthcheck"
+    
+idle.timeout: "30000"
+
+connection.timeout: "60000"
+
+max:
+  retry: "3"
+  time: "30000"
+   

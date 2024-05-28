@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<http:listener-config name="httpListenerConfig">
+        <http:listener-connection host="${https.host}" port="${https.port}" protocol="HTTPS" readTimeout="${https.timeout}" connectionIdleTimeout="${https.ideal}">
+			<tls:context >
+				<tls:key-store type="jks" path="${keystore.path}" keyPassword="${secure::keystore.password}" password="${secure::keystore.password}" />
+			</tls:context>
+		</http:listener-connection>
+    </http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="77ee9e57-c112-442e-9774-566efa3a4a61" file="config/${env}-config.yaml" />
+	<api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="ca6fdfde-119a-411d-8f5f-a88b77697f17" flowRef="product-pricing-api-main" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="9cfc83db-f98f-4694-815b-ca5e59cf355b" file="config/${env}-config.yaml" key="${mule.key}" />
+	<configuration doc:name="Configuration" doc:id="c583ead8-267b-4324-9ee4-57ef634fc858" defaultErrorHandler-ref="global-error-handler" />
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7476fa2b-da08-47a3-b4d4-7ffc38f2c57f" basePath="${salesforce.sys.basepath}" responseTimeout="${connection.timeout}">
+		<http:request-connection protocol="HTTPS" host="${salesforce.sys.host}" connectionIdleTimeout="${idle.timeout}">
+		</http:request-connection>
+	</http:request-config>
+	<os:object-store name="Object_store_page" doc:name="Object store" doc:id="baa0a191-a857-4d2b-9f0a-1b7f1de8c555" />
+	<os:object-store name="Object_store_size" doc:name="Object store" doc:id="3633795a-ec7d-48bd-aba8-1b46240a7b0e" />
+
+</mule>
